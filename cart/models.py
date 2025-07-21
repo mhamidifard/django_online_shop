@@ -20,7 +20,7 @@ class CartItem(models.Model):
     class Meta:
         unique_together = ('cart', 'variant')
 
-    def save(self, *args, **kwargs):
-        if not self.pk and self.variant:
-            self.price = self.variant.price
-        super().save(*args, **kwargs)
+    def save_price(self):
+        self.price = self.price * self.quantity
+        self.save()
+
