@@ -25,7 +25,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 class ProductVariantAdmin(admin.ModelAdmin):
-    list_display = ('product', 'price', 'stock', 'formatted_attributes')
+    list_display = ('id','product', 'price', 'stock', 'formatted_attributes')
     list_filter = ('product',)
     search_fields = ('product__name',)
     readonly_fields = ()
