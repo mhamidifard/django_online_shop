@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import Category, Product, ProductVariant
 
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'parent', 'slug')
+    list_display = ('id','name', 'parent', 'slug')
     list_filter = ('parent',)
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
@@ -16,7 +16,7 @@ class ProductVariantInline(admin.TabularInline):
 
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'is_available', 'created_at', 'updated_at')
+    list_display = ('id','name', 'category', 'is_available', 'created_at', 'updated_at')
     list_filter = ('category', 'is_available', 'created_at')
     search_fields = ('name', 'slug', 'description')
     prepopulated_fields = {'slug': ('name',)}

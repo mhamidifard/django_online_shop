@@ -1,6 +1,8 @@
 from django.db import models
 from django.db.models import JSONField
 
+from accounts.models import User
+
 
 class Category(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -17,19 +19,27 @@ class Category(models.Model):
 
 
 class Product(models.Model):
+    seller= models.ForeignKey(User, on_delete=models.PROTECT, related_name='products')
     category = models.ForeignKey(Category, related_name='products', on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
     description = models.TextField()
     is_available = models.BooleanField(default=True)
     specifications = JSONField(default=dict, blank=True)
-    images = JSONField(default=list, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='product_images/')
+    alt_text = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        return f"Image for {self.product.name}"
 
 
 class ProductVariant(models.Model):
