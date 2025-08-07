@@ -102,16 +102,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = '__all__'
-        # fields = [
-        #     'id',
-        #     'user',
-        #     'total_amount',
-        #     'status',
-        #     'shipping_address',
-        #     'payment_method',
-        #     'payment_status',
-        #     'transaction_id',
-        #     'ordered_at',
-        #     'notes',
-        #     'items',
-        # ]
+
+class OrderStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['status']

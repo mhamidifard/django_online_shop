@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from rest_framework import status, generics, permissions
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from orders.models import Order
-from orders.serializers import OrderCreateSerializer, OrderListSerializer, OrderDetailSerializer
+from orders.serializers import OrderCreateSerializer, OrderListSerializer, OrderDetailSerializer, \
+    OrderStatusUpdateSerializer
 
 
 class ConvertCartToOrderView(APIView):
@@ -32,5 +33,11 @@ class OrderDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated,UserOrderPermission]
     serializer_class = OrderDetailSerializer
     queryset = Order.objects.all()
+
+class OrderStatusUpdateView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated,IsAdminUser]
+    serializer_class = OrderStatusUpdateSerializer
+    queryset = Order.objects.all()
+    http_method_names = ['patch']
 
 

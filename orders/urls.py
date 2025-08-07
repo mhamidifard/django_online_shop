@@ -1,11 +1,12 @@
 from django.urls import path
 
-from orders.views import ConvertCartToOrderView, OrderListView, OrderDetailView
+from orders.views import ConvertCartToOrderView, OrderListView, OrderDetailView, OrderStatusUpdateView
 
 urlpatterns=[
 
     path('convert-cart-to-order/',ConvertCartToOrderView.as_view(),name='convert-cart-to_order'),
     path('orders/', OrderListView.as_view(), name='order-list'),
     path('orders/<int:pk>/', OrderDetailView.as_view(), name='order-detail'),
+    path('orders/<int:pk>/update-status/', OrderStatusUpdateView.as_view(), name='order-update-status'),
 
 ]
