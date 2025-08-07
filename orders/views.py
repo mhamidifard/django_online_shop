@@ -4,7 +4,9 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from online_shop.permissions import IsAdmin
 from orders.models import Order
+from orders.permissions import UserOrderPermission
 from orders.serializers import OrderCreateSerializer, OrderListSerializer, OrderDetailSerializer, \
     OrderStatusUpdateSerializer
 
@@ -25,17 +27,13 @@ class OrderListView(generics.ListAPIView):
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
 
-class UserOrderPermission(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        return request.user == obj.user
-
 class OrderDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated,UserOrderPermission]
     serializer_class = OrderDetailSerializer
     queryset = Order.objects.all()
 
 class OrderStatusUpdateView(generics.UpdateAPIView):
-    permission_classes = [IsAuthenticated,IsAdminUser]
+    permission_classes = [IsAuthenticated,IsAdmin]
     serializer_class = OrderStatusUpdateSerializer
     queryset = Order.objects.all()
     http_method_names = ['patch']

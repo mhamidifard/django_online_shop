@@ -6,8 +6,9 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from online_shop.permissions import IsAdmin
 from products.models import Category, Product, ProductImage, ProductVariant
-from products.permissions import IsSeller, IsSellerOwnerOrAdmin
+from products.permissions import IsSeller, IsSellerOwner
 from products.serializers import CategorySerializer, CategoryListSerializer, ProductListSerializer, \
     ProductDetailSerializer, ProductImageSerializer, ProductCreateSerializer, ProductVariantSerializer
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -66,7 +67,7 @@ class ProductCreateView(generics.CreateAPIView):
 class ProductImageUploadView(generics.CreateAPIView):
     serializer_class = ProductImageSerializer
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [permissions.IsAuthenticated,IsSellerOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated & (IsSellerOwner | IsAdmin)]
 
     def perform_create(self, serializer):
         product_id = self.kwargs['product_id']
@@ -76,21 +77,21 @@ class ProductImageUploadView(generics.CreateAPIView):
 class ProductImageDeleteView(generics.DestroyAPIView):
     queryset = ProductImage.objects.all()
     serializer_class = ProductImageSerializer
-    permission_classes = [permissions.IsAuthenticated,IsSellerOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated & (IsSellerOwner | IsAdmin)]
 
 class ProductUpdateView(generics.UpdateAPIView):
     partial=True
     queryset = Product.objects.all()
     serializer_class = ProductCreateSerializer
-    permission_classes = [permissions.IsAuthenticated,IsSellerOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated & (IsSellerOwner | IsAdmin)]
 
 class ProductDeleteView(generics.DestroyAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductDetailSerializer
-    permission_classes = [permissions.IsAuthenticated,IsSellerOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated & (IsSellerOwner | IsAdmin)]
 
 class ProductVariantView(generics.RetrieveUpdateDestroyAPIView):
     partial=True
     queryset = ProductVariant.objects.all()
     serializer_class = ProductVariantSerializer
-    permission_classes = [permissions.IsAuthenticated,IsSellerOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated & (IsSellerOwner | IsAdmin)]
