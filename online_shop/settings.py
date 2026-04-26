@@ -9,23 +9,49 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import os
 from datetime import timedelta
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+from django.core.management.utils import get_random_secret_key
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def get_env(name, default=None, *, required=False):
+    value = os.getenv(name, default)
+    if required and (value is None or value == ""):
+        raise ImproperlyConfigured(f"Missing required environment variable: {name}")
+    return value
+
+
+def get_bool_env(name, default=False):
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-!jkdr%vj)1*t26ozg087q)*+c8yol857)2%3z*8bz_nb1h#p)*'
+DEBUG = get_bool_env("DJANGO_DEBUG", default=True)
+
+SECRET_KEY = get_env("DJANGO_SECRET_KEY", required=not DEBUG)
+if not SECRET_KEY:
+    # Generate an ephemeral key for local development only.
+    SECRET_KEY = get_random_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in get_env("DJANGO_ALLOWED_HOSTS", default="").split(",")
+    if host.strip()
+]
 
 
 # Application definition
@@ -84,12 +110,12 @@ WSGI_APPLICATION = 'online_shop.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mydb',
-        'USER': 'admin',
-        'PASSWORD': 'admin',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': get_env('DB_ENGINE', default='django.db.backends.sqlite3'),
+        'NAME': get_env('DB_NAME', default=str(BASE_DIR / 'db.sqlite3')),
+        'USER': get_env('DB_USER', default=''),
+        'PASSWORD': get_env('DB_PASSWORD', default=''),
+        'HOST': get_env('DB_HOST', default=''),
+        'PORT': get_env('DB_PORT', default=''),
     }
 }
 
