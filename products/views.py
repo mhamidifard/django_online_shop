@@ -1,5 +1,5 @@
 from django.db.models import Q
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.views.generic import ListView
 from rest_framework import generics, viewsets, permissions
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -71,7 +71,7 @@ class ProductImageUploadView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         product_id = self.kwargs['product_id']
-        product = Product.objects.get(id=product_id)
+        product = get_object_or_404(Product, id=product_id)
         # CreateAPIView does not run object-level permission checks automatically.
         self.check_object_permissions(self.request, product)
         serializer.save(product=product)
