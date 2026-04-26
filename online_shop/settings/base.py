@@ -131,10 +131,12 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
         "anon": os.getenv("DRF_THROTTLE_ANON", "100/hour"),
         "user": os.getenv("DRF_THROTTLE_USER", "1000/hour"),
+        "password_reset": os.getenv("DRF_THROTTLE_PASSWORD_RESET", "5/hour"),
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": get_int_env("DRF_PAGE_SIZE", 20),
@@ -144,6 +146,17 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=get_int_env("JWT_ACCESS_MINUTES", 15)),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=get_int_env("JWT_REFRESH_DAYS", 1)),
 }
+
+FRONTEND_URL = get_env("FRONTEND_URL", default="http://localhost:3000")
+PASSWORD_RESET_CONFIRM_PATH = get_env("PASSWORD_RESET_CONFIRM_PATH", default="/reset-password/confirm")
+
+EMAIL_BACKEND = get_env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = get_env("DEFAULT_FROM_EMAIL", default="no-reply@example.com")
+EMAIL_HOST = get_env("EMAIL_HOST", default="")
+EMAIL_PORT = get_int_env("EMAIL_PORT", 587)
+EMAIL_HOST_USER = get_env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = get_env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = get_bool_env("EMAIL_USE_TLS", default=True)
 
 
 SESSION_COOKIE_SECURE = get_bool_env("DJANGO_SESSION_COOKIE_SECURE", default=not DEBUG)
