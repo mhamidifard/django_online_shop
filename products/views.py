@@ -72,6 +72,8 @@ class ProductImageUploadView(generics.CreateAPIView):
     def perform_create(self, serializer):
         product_id = self.kwargs['product_id']
         product = Product.objects.get(id=product_id)
+        # CreateAPIView does not run object-level permission checks automatically.
+        self.check_object_permissions(self.request, product)
         serializer.save(product=product)
 
 class ProductImageDeleteView(generics.DestroyAPIView):
