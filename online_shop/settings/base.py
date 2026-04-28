@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
     "accounts",
     "cart",
     "products",
@@ -140,6 +141,23 @@ REST_FRAMEWORK = {
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": get_int_env("DRF_PAGE_SIZE", 20),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Online Shop API",
+    "DESCRIPTION": "REST API documentation for authentication, catalog, cart, orders, and reviews.",
+    "VERSION": "1.0.0",
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": r"/api",
+    "TAGS": [
+        {"name": "accounts", "description": "Authentication and account management endpoints."},
+        {"name": "products", "description": "Product catalog and category endpoints."},
+        {"name": "cart", "description": "Shopping cart operations."},
+        {"name": "orders", "description": "Order lifecycle endpoints."},
+        {"name": "product_reviews", "description": "Review create/list/delete endpoints."},
+    ],
 }
 
 SIMPLE_JWT = {
