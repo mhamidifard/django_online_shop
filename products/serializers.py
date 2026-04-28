@@ -37,7 +37,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     def get_children(self, obj):
         if obj.children.exists():
-            children = obj.children.all().order_by('id')  # یا 'name'
+            children = obj.children.all().order_by('id')
             return CategoryListSerializer(children, many=True).data
         return []
 
@@ -80,11 +80,11 @@ class ProductVariantSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
     class Meta:
         model = ProductVariant
-        fields = ['id',  'price', 'stock','attributes']  # فرضی
+        fields = ['id',  'price', 'stock','attributes']
         list_serializer_class = ProductVariantListSerializer
 
     def create(self, validated_data):
-        # فرض می‌کنیم product به صورت دستی ست میشه
+
         if 'id' in validated_data:
             raise serializers.ValidationError({'id':"ID is not allowed when creating a new variant."})
         validated_data['product'] = self.context['product']
@@ -134,7 +134,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
 
         product = Product.objects.create(**validated_data)
 
-        # پاس دادن product به context سریالایزر فرزند
+
         variant_serializer = ProductVariantSerializer(
             data=variants_data,
             many=True,
@@ -146,7 +146,6 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         return product
 
     def update(self, instance, validated_data):
-        print("hello")
         variants_data = validated_data.pop('variants', None)
 
         for attr, value in validated_data.items():
@@ -158,7 +157,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         instance.save()
 
         if variants_data is not None:
-            # پاس دادن کوئری‌ست فعلی واریانت‌ها و داده جدید به سریالایزر
+
             variant_serializer = ProductVariantSerializer(
                 instance=instance.variants.all(),
                 data=variants_data,

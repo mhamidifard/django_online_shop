@@ -92,7 +92,7 @@ class PasswordResetRequestView(APIView):
         reset_link = f"{frontend_base}{confirm_path}/?uid={encoded_uid}&token={encoded_token}"
 
         try:
-            send_mail(
+                send_mail(
                 subject="Password reset request",
                 message=f"Use this link to reset your password:\n{reset_link}",
                 from_email=settings.DEFAULT_FROM_EMAIL,
