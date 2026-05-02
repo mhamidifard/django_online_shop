@@ -1,0 +1,1 @@
+drf-spectacular[sidecar]>=0.27,<1.0
