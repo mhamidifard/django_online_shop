@@ -13,6 +13,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, extend_schema_view, inline_serializer
+from rest_framework import serializers
 
 from accounts.models import User
 from accounts.serilizers import UserRegistrationSerializer, UserProfileSerializer, UserLoginSerializer, \
@@ -21,10 +23,27 @@ from accounts.serilizers import UserRegistrationSerializer, UserProfileSerialize
 logger = logging.getLogger(__name__)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["accounts"],
+        description="Validate the current JWT access token and return authentication state.",
+        responses=inline_serializer(
+            name="AuthCheckResponse",
+            fields={"message": serializers.CharField()},
+        ),
+    )
+)
 class TestAuthentication(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     def get(self, request, format=None):
         return Response({'message': 'You are logged in'}, status=status.HTTP_200_OK)
+@extend_schema_view(
+    post=extend_schema(
+        tags=["accounts"],
+        description="Register a new user and return profile plus JWT token pair.",
+        request=UserRegistrationSerializer,
+    )
+)
 class UserRegistrationView(APIView):
     serializer_class = UserRegistrationSerializer
     def post(self, request):
@@ -39,6 +58,13 @@ class UserRegistrationView(APIView):
                          'refresh': str(refresh),
                          'access': str(refresh.access_token)},
                           status=status.HTTP_201_CREATED)
+@extend_schema_view(
+    post=extend_schema(
+        tags=["accounts"],
+        description="Authenticate user credentials and return JWT tokens.",
+        request=UserLoginSerializer,
+    )
+)
 class UserLoginView(APIView):
     serializer_class = UserLoginSerializer
     def post(self, request):
@@ -46,6 +72,13 @@ class UserLoginView(APIView):
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+@extend_schema_view(
+    post=extend_schema(
+        tags=["accounts"],
+        description="Blacklist a refresh token and log out the current user.",
+        request=UserLogoutSerializer,
+    )
+)
 class UserLogoutView(APIView):
     serializer_class =UserLogoutSerializer
     permission_classes = [IsAuthenticated]
@@ -63,6 +96,13 @@ class UserLogoutView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"detail": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+@extend_schema_view(
+    post=extend_schema(
+        tags=["accounts"],
+        description="Request a password reset link by email (rate limited).",
+        request=PasswordResetRequestSerializer,
+    )
+)
 class PasswordResetRequestView(APIView):
     serializer_class = PasswordResetRequestSerializer
     permission_classes = [AllowAny]
@@ -104,6 +144,25 @@ class PasswordResetRequestView(APIView):
 
         return Response(success_message, status=status.HTTP_200_OK)
 
+@extend_schema_view(
+    post=extend_schema(
+        tags=["accounts"],
+        description="Reset password using `uid`, `token`, and a new password.",
+        request=PasswordResetConfirmSerializer,
+        examples=[
+            OpenApiExample(
+                "Password reset payload",
+                value={"uid": "Mg", "token": "set-password-token", "new_password": "StrongPass123!"},
+                request_only=True,
+            )
+        ],
+    ),
+    get=extend_schema(
+        tags=["accounts"],
+        description="Validate reset token before submitting a new password.",
+        responses={200: OpenApiResponse(description="Token is valid."), 400: OpenApiResponse(description="Invalid input or token.")},
+    ),
+)
 class PasswordResetConfirmView(APIView):
     serializer_class = PasswordResetConfirmSerializer
     permission_classes = [AllowAny]

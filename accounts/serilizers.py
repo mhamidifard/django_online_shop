@@ -40,9 +40,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('id', 'username', 'email')
 
-# class UserLoginSerializer(serializers.Serializer):
-#     username = serializers.CharField()
-#     password = serializers.CharField(write_only=True)
 
 class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
@@ -64,18 +61,6 @@ class UserLoginSerializer(serializers.Serializer):
         attrs['access'] = str(refresh.access_token)
         attrs['user'] = UserProfileSerializer(user).data
         return attrs
-
-    # def get_user(self, obj):
-    #     user = obj.get('user')
-    #     if not user:
-    #         return None
-    #     return {
-    #         'id': user.id,
-    #         'username': user.username,
-    #         'email': user.email,
-    #         'first_name': user.first_name,
-    #         'last_name': user.last_name,
-    #     }
 
 
 class UserLogoutSerializer(serializers.Serializer):
