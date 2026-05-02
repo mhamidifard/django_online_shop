@@ -86,5 +86,5 @@ class CartSerializer(serializers.ModelSerializer):
         model = Cart
         fields = ['id', 'user', 'created_at', 'updated_at','total_price' ,'items']
         read_only_fields = ['user', 'created_at', 'updated_at']
-    def get_total_price(self, obj):
+    def get_total_price(self, obj) -> float:
         return sum(item.price * item.quantity for item in obj.items.all())

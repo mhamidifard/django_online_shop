@@ -13,7 +13,7 @@ class CategoryListSerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name', 'slug', 'image_url', 'children']
 
-    def get_children(self, obj):
+    def get_children(self, obj) -> list[dict]:
         children = obj.children.all().order_by('id')
         if children.exists():
             return CategoryListSerializer(children, many=True).data
@@ -35,7 +35,7 @@ class CategorySerializer(serializers.ModelSerializer):
             'children',
         ]
 
-    def get_children(self, obj):
+    def get_children(self, obj) -> list[dict]:
         if obj.children.exists():
             children = obj.children.all().order_by('id')
             return CategoryListSerializer(children, many=True).data
@@ -169,7 +169,6 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             variant_serializer.save()
 
         return instance
-
 
 
 

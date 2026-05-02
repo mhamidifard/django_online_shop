@@ -12,27 +12,52 @@ from products.permissions import IsSeller, IsSellerOwner
 from products.serializers import CategorySerializer, CategoryListSerializer, ProductListSerializer, \
     ProductDetailSerializer, ProductImageSerializer, ProductCreateSerializer, ProductVariantSerializer
 from rest_framework.generics import ListAPIView, RetrieveAPIView
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view, inline_serializer
 
 
-
-# Create your views here.
+@extend_schema_view(
+    get=extend_schema(tags=["products"], description="List root categories with nested children.")
+)
 class CategoryListView(ListAPIView):
     queryset = Category.objects.filter(parent=None)
     serializer_class = CategoryListSerializer
     paginator_class = None
+@extend_schema_view(
+    get=extend_schema(tags=["products"], description="Retrieve a category by slug.")
+)
 class CategoryDetailView(RetrieveAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     lookup_field = 'slug'
 
+@extend_schema_view(
+    get=extend_schema(tags=["products"], description="List products.")
+)
 class ProductListView(ListAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductListSerializer
 
+@extend_schema_view(
+    get=extend_schema(tags=["products"], description="Retrieve product details with variants and images.")
+)
 class ProductDetailView(RetrieveAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductDetailSerializer
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["products"],
+        description="Search products and categories by a free-text query.",
+        parameters=[OpenApiParameter(name="q", type=str, location=OpenApiParameter.QUERY, required=True)],
+        responses=inline_serializer(
+            name="GlobalSearchResponse",
+            fields={
+                "products": ProductListSerializer(many=True),
+                "categories": CategoryListSerializer(many=True),
+            },
+        ),
+    )
+)
 class GlobalSearchView(APIView):
     def get(self, request, *args, **kwargs):
         query = request.query_params.get('q')
@@ -59,11 +84,17 @@ class productSearch(APIView):
         return Response(serializer.data)
 
 
+@extend_schema_view(
+    post=extend_schema(tags=["products"], description="Create a new product with variants.")
+)
 class ProductCreateView(generics.CreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductCreateSerializer
     permission_classes = [permissions.IsAuthenticated,IsSeller]
 
+@extend_schema_view(
+    post=extend_schema(tags=["products"], description="Upload an image for a product.")
+)
 class ProductImageUploadView(generics.CreateAPIView):
     serializer_class = ProductImageSerializer
     parser_classes = [MultiPartParser, FormParser]
@@ -76,22 +107,38 @@ class ProductImageUploadView(generics.CreateAPIView):
         self.check_object_permissions(self.request, product)
         serializer.save(product=product)
 
+@extend_schema_view(
+    delete=extend_schema(tags=["products"], description="Delete a product image.")
+)
 class ProductImageDeleteView(generics.DestroyAPIView):
     queryset = ProductImage.objects.all()
     serializer_class = ProductImageSerializer
     permission_classes = [permissions.IsAuthenticated & (IsSellerOwner | IsAdmin)]
 
+@extend_schema_view(
+    put=extend_schema(tags=["products"], description="Update a product."),
+    patch=extend_schema(tags=["products"], description="Partially update a product."),
+)
 class ProductUpdateView(generics.UpdateAPIView):
     partial=True
     queryset = Product.objects.all()
     serializer_class = ProductCreateSerializer
     permission_classes = [permissions.IsAuthenticated & (IsSellerOwner | IsAdmin)]
 
+@extend_schema_view(
+    delete=extend_schema(tags=["products"], description="Delete a product.")
+)
 class ProductDeleteView(generics.DestroyAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductDetailSerializer
     permission_classes = [permissions.IsAuthenticated & (IsSellerOwner | IsAdmin)]
 
+@extend_schema_view(
+    get=extend_schema(tags=["products"], description="Retrieve a product variant."),
+    put=extend_schema(tags=["products"], description="Update a product variant."),
+    patch=extend_schema(tags=["products"], description="Partially update a product variant."),
+    delete=extend_schema(tags=["products"], description="Delete a product variant."),
+)
 class ProductVariantView(generics.RetrieveUpdateDestroyAPIView):
     partial=True
     queryset = ProductVariant.objects.all()
