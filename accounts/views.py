@@ -2,7 +2,6 @@ import logging
 from urllib.parse import quote
 
 from django.conf import settings
-from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -19,6 +18,7 @@ from rest_framework import serializers
 from accounts.models import User
 from accounts.serilizers import UserRegistrationSerializer, UserProfileSerializer, UserLoginSerializer, \
     UserLogoutSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+from accounts.tasks import send_password_reset_email, send_welcome_email
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,8 @@ class TestAuthentication(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     def get(self, request, format=None):
         return Response({'message': 'You are logged in'}, status=status.HTTP_200_OK)
+
+
 @extend_schema_view(
     post=extend_schema(
         tags=["accounts"],
@@ -53,11 +55,23 @@ class UserRegistrationView(APIView):
         user_data=UserProfileSerializer(user).data
         refresh = RefreshToken.for_user(user)
 
+        # Send welcome email asynchronously
+        try:
+            send_welcome_email.apply_async(
+                args=[user.email, user.get_full_name() or user.email],
+                queue='default',
+                priority=5
+            )
+        except Exception:
+            logger.exception("Failed to queue welcome email for user_id=%s", user.id)
+
         return Response({'message': 'User registered',
                          'user':user_data,
                          'refresh': str(refresh),
                          'access': str(refresh.access_token)},
                           status=status.HTTP_201_CREATED)
+
+
 @extend_schema_view(
     post=extend_schema(
         tags=["accounts"],
@@ -71,6 +85,7 @@ class UserLoginView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @extend_schema_view(
     post=extend_schema(
@@ -96,6 +111,8 @@ class UserLogoutView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"detail": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+
+
 @extend_schema_view(
     post=extend_schema(
         tags=["accounts"],
@@ -131,37 +148,25 @@ class PasswordResetRequestView(APIView):
         encoded_token = quote(token, safe="")
         reset_link = f"{frontend_base}{confirm_path}/?uid={encoded_uid}&token={encoded_token}"
 
+        # Send password reset email asynchronously
         try:
-                send_mail(
-                subject="Password reset request",
-                message=f"Use this link to reset your password:\n{reset_link}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
+            send_password_reset_email.apply_async(
+                args=[user.email, reset_link],
+                queue='critical',
+                priority=10
             )
         except Exception:
-            logger.exception("Password reset email dispatch failed for user_id=%s", user.id)
+            logger.exception("Failed to queue password reset email for user_id=%s", user.id)
 
         return Response(success_message, status=status.HTTP_200_OK)
+
 
 @extend_schema_view(
     post=extend_schema(
         tags=["accounts"],
         description="Reset password using `uid`, `token`, and a new password.",
         request=PasswordResetConfirmSerializer,
-        examples=[
-            OpenApiExample(
-                "Password reset payload",
-                value={"uid": "Mg", "token": "set-password-token", "new_password": "StrongPass123!"},
-                request_only=True,
-            )
-        ],
-    ),
-    get=extend_schema(
-        tags=["accounts"],
-        description="Validate reset token before submitting a new password.",
-        responses={200: OpenApiResponse(description="Token is valid."), 400: OpenApiResponse(description="Invalid input or token.")},
-    ),
+    )
 )
 class PasswordResetConfirmView(APIView):
     serializer_class = PasswordResetConfirmSerializer

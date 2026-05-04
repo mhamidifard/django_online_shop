@@ -1,0 +1,1 @@
+python -m dotenv -f .env.example run python manage.py runserver

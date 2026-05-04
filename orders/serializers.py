@@ -1,8 +1,11 @@
+import logging
 from rest_framework import serializers
 from django.db import transaction
 from .models import Order, OrderItem
 from cart.models import Cart, CartItem
+from .tasks import send_order_confirmation_email, send_order_status_update_email
 
+logger = logging.getLogger(__name__)
 
 
 class OrderCreateSerializer(serializers.Serializer):
@@ -77,12 +80,24 @@ class OrderCreateSerializer(serializers.Serializer):
         # Clear the cart
         cart.items.all().delete()
 
+        # Send order confirmation email asynchronously
+        try:
+            send_order_confirmation_email.apply_async(
+                args=[user.email, order.id, str(order.total_amount)],
+                queue='critical',
+                priority=10
+            )
+        except Exception:
+            logger.exception("Failed to queue order confirmation email for order_id=%s", order.id)
+
         return order
+
 
 class OrderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id','status','payment_status','total_amount','ordered_at']
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -96,6 +111,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             'variant',
         ]
 
+
 class OrderDetailSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
 
@@ -103,7 +119,28 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
 
+
 class OrderStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['status']
+
+    def update(self, instance, validated_data):
+        old_status = instance.status
+        new_status = validated_data.get('status', old_status)
+        
+        # Update the order status
+        instance = super().update(instance, validated_data)
+        
+        # Send status update email if status changed
+        if old_status != new_status:
+            try:
+                send_order_status_update_email.apply_async(
+                    args=[instance.user.email, instance.id, old_status, new_status],
+                    queue='default',
+                    priority=5
+                )
+            except Exception:
+                logger.exception("Failed to queue order status update email for order_id=%s", instance.id)
+        
+        return instance
