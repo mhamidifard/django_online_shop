@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-mydb}
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+
+  celery_worker:
+    build: .
+    command: celery -A online_shop worker -l info
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+      - rabbitmq
+
+  celery_beat:
+    build: .
+    command: celery -A online_shop beat -l info
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+      - rabbitmq
+
+  flower:
+    build: .
+    command: celery -A online_shop flower --port=5555
+    ports:
+      - "5555:5555"
+    env_file:
+      - .env
+    depends_on:
+      - celery_worker
+      - redis
+      - rabbitmq
+
+volumes:
+  postgres_data:
