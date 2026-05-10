@@ -13,6 +13,8 @@ from products.serializers import CategorySerializer, CategoryListSerializer, Pro
     ProductDetailSerializer, ProductImageSerializer, ProductCreateSerializer, ProductVariantSerializer
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view, inline_serializer
+from django.core.cache import cache
+from .cache_utils import set_cache_with_jitter
 
 
 @extend_schema_view(
@@ -22,6 +24,17 @@ class CategoryListView(ListAPIView):
     queryset = Category.objects.filter(parent=None)
     serializer_class = CategoryListSerializer
     paginator_class = None
+
+    def list(self, request, *args, **kwargs):
+        cache_key = "categories_root_list"
+        cached_data = cache.get(cache_key)
+        
+        if cached_data is not None:
+            return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        set_cache_with_jitter(cache_key, response.data, timeout=3600)
+        return response
 @extend_schema_view(
     get=extend_schema(tags=["products"], description="Retrieve a category by slug.")
 )
@@ -37,12 +50,35 @@ class ProductListView(ListAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductListSerializer
 
+    def list(self, request, *args, **kwargs):
+        cache_key = "products_list"
+        cached_data = cache.get(cache_key)
+        
+        if cached_data is not None:
+            return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        set_cache_with_jitter(cache_key, response.data, timeout=3600)
+        return response
+
 @extend_schema_view(
     get=extend_schema(tags=["products"], description="Retrieve product details with variants and images.")
 )
 class ProductDetailView(RetrieveAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductDetailSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance_id = self.kwargs.get(self.lookup_field, self.kwargs.get('pk'))
+        cache_key = f"product_detail_{instance_id}"
+        
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
+        response = super().retrieve(request, *args, **kwargs)
+        set_cache_with_jitter(cache_key, response.data, timeout=3600)
+        return response
 
 @extend_schema_view(
     get=extend_schema(
