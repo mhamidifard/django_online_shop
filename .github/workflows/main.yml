@@ -1,0 +1,56 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+
+jobs:
+  ci-build-and-test:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create `.env` file for testing
+        run: |
+          cp .env.example .env
+          echo "DJANGO_SECRET_KEY=test-secret-key" >> .env
+          echo "DB_NAME=mydb" >> .env
+          echo "DB_USER=admin" >> .env
+          echo "DB_PASSWORD=admin" >> .env
+
+      - name: Build and Start Services
+        run: docker compose up -d
+
+      - name: Wait for Services to Initialize
+        run: |
+          echo "Waiting for services to be ready..."
+          sleep 10  # Simple wait for db, redis, and rabbitmq to initialize
+
+      # - name: Run Linting (flake8 and black)
+      #   run: |
+      #     docker compose exec -T web pip install flake8 black
+      #     docker compose exec -T web black --check .
+      #     docker compose exec -T web flake8 .
+
+      - name: Install Development Requirements
+        run: docker compose exec -T web pip install -r requirements-dev.txt
+
+      - name: Run Pytest Test Suite
+        run: docker compose exec -T web pytest
+
+      - name: Show logs if web fails
+        run: docker compose logs web
+        if: failure()
+
+      - name: Stop Services
+        if: always()
+        run: docker compose down -v
