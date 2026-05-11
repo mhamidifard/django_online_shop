@@ -48,6 +48,7 @@ class TestAuthentication(APIView):
 )
 class UserRegistrationView(APIView):
     serializer_class = UserRegistrationSerializer
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -81,6 +82,7 @@ class UserRegistrationView(APIView):
 )
 class UserLoginView(APIView):
     serializer_class = UserLoginSerializer
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
